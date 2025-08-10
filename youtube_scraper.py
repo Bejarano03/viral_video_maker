@@ -1,17 +1,13 @@
 import os
+import random
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
-
-load_dotenv()
-
 
 def get_trending_videos(api_key, country_code='US', category_id=None):
     """Fetches trending videos from YouTube Data API v3."""
     try:
-        # Build the service object for the YouTube Data API
         youtube = build('youtube', 'v3', developerKey=api_key)
 
-        # Make the API call to get the most popular videos
         request = youtube.videos().list(
             part='snippet,statistics',
             chart='mostPopular',
@@ -21,7 +17,6 @@ def get_trending_videos(api_key, country_code='US', category_id=None):
         )
         response = request.execute()
 
-        # Extract video titles and other useful data
         trending_videos = []
         for item in response.get('items', []):
             title = item['snippet']['title']
@@ -34,14 +29,31 @@ def get_trending_videos(api_key, country_code='US', category_id=None):
         print(f"An error occurred: {e}")
         return None
 
-if __name__ == '__main__':
+def get_trending_topic():
+    """
+    Fetches trending videos from the 'Comedy' category and returns a random video title.
+    """
+    load_dotenv()
     api_key = os.getenv('YOUTUBE_API_KEY')
     
-    if api_key == 'YOUR_API_KEY':
-        print("Please set your YOUTUBE_API_KEY environment variable or replace the placeholder.")
+    if not api_key:
+        print("Error: YOUTUBE_API_KEY not found in .env file.")
+        return None
+
+    # Fetching trending videos specifically for the 'Comedy' category (ID 23)
+    trending_videos = get_trending_videos(api_key, category_id='23')
+    
+    if trending_videos:
+        # Select a random title from the list of trending videos
+        random_video = random.choice(trending_videos)
+        return random_video['title']
     else:
-        videos = get_trending_videos(api_key, country_code='US', category_id='23')
-        if videos:
-            print("Successfully fetched trending videos:")
-            for video in videos:
-                print(f"- Title: {video['title']} (ID: {video['video_id']})")
+        print("Failed to fetch trending videos.")
+        return None
+
+if __name__ == '__main__':
+    trending_topic = get_trending_topic()
+    if trending_topic:
+        print(f"Successfully fetched a trending topic: {trending_topic}")
+    else:
+        print("Failed to fetch a trending topic.")
