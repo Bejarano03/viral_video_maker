@@ -1,13 +1,12 @@
 import os
 import requests
 import base64
-from runwayml import RunwayML
+from runwayml import RunwayML, TaskFailedError
 from dotenv import load_dotenv
-import time
 
 load_dotenv()
 
-def generate_runway_clips(visual_keywords_list, duration=1):
+def generate_runway_clips(visual_keywords_list, duration=5):
     """
     Generates multiple short video clips using Runway ML based on a list of keywords.
 
@@ -22,44 +21,38 @@ def generate_runway_clips(visual_keywords_list, duration=1):
     if not runway_key:
         print("Error: Runway API key not found.")
         return []
-    
+
     client = RunwayML(api_key=runway_key)
 
-    blank_image_data_uri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+    # Create a 1x1 pixel transparent PNG as a placeholder prompt image
+    placeholder_image_url = "https://placehold.co/1x1.png"
 
-    
     clip_urls = []
     print("Starting video generation with Runway ML...")
-    
+
     for keywords in visual_keywords_list:
         print(f"  - Generating clip for: '{keywords}'...")
         try:
-            # We'll use the 'gen-3-motion' model as it's a powerful and cost-effective option
+            # We'll use the 'gen3a_turbo' model as it's a powerful and cost-effective option
             task = client.image_to_video.create(
-                model='gen-3-motion',
-                prompt_image=blank_image_data_uri,
+                model='gen3a_turbo',
+                prompt_image=placeholder_image_url,
                 prompt_text=keywords,
                 duration=duration,
-                ratio='9:16'  # Vertical video format
-            )
+                ratio='768:1280'
+            ).wait_for_task_output()
             
-            # Poll the API until the task is complete
-            status = task.get('status')
-            while status not in ['succeeded', 'failed']:
-                print(f"    - Status: {status}...")
-                time.sleep(10)  # Wait for 10 seconds before checking again
-                task = client.tasks.retrieve(task['id'])
-                status = task.get('status')
-                
-            if status == 'succeeded':
-                video_url = task['result']['video']['url']
-                clip_urls.append(video_url)
-                print(f"  - Clip generated successfully. URL: {video_url}")
-            else:
-                print("  - Video generation failed for this prompt.")
+            # The task object now contains the final output directly
+            video_url = task.output[0]
+            clip_urls.append(video_url)
+            print(f"  - Clip generated successfully. URL: {video_url}")
+
+        except TaskFailedError as e:
+            print(f"  - Video generation failed for this prompt.")
+            print(f"  - Error details: {e.task_details}")
         except Exception as e:
-            print(f"An error occurred with the Runway API: {e}")
-            
+            print(f"An unexpected error occurred with the Runway API: {e}")
+
     # Now, download the generated clips to the local machine
     local_clip_paths = []
     if clip_urls:
@@ -81,7 +74,6 @@ def generate_runway_clips(visual_keywords_list, duration=1):
     return local_clip_paths
 
 if __name__ == '__main__':
-    # This block shows how to use the function. It's for testing purposes.
     keywords_from_openai = ["futuristic cyberpunk city"]
     downloaded_clips = generate_runway_clips(keywords_from_openai)
     if downloaded_clips:
