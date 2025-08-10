@@ -1,10 +1,13 @@
+# youtube_scraper.py
 import os
 import random
 from googleapiclient.discovery import build
 from dotenv import load_dotenv
 
 def get_trending_videos(api_key, country_code='US', category_id=None):
-    """Fetches trending videos from YouTube Data API v3."""
+    """
+    Fetches trending videos from YouTube Data API v3.
+    """
     try:
         youtube = build('youtube', 'v3', developerKey=api_key)
 
@@ -29,9 +32,10 @@ def get_trending_videos(api_key, country_code='US', category_id=None):
         print(f"An error occurred: {e}")
         return None
 
-def get_trending_topic():
+def get_trending_topic(category_id=None):
     """
-    Fetches trending videos from the 'Comedy' category and returns a random video title.
+    Fetches trending videos and returns a random video title.
+    Now accepts an optional category_id to filter results.
     """
     load_dotenv()
     api_key = os.getenv('YOUTUBE_API_KEY')
@@ -40,8 +44,7 @@ def get_trending_topic():
         print("Error: YOUTUBE_API_KEY not found in .env file.")
         return None
 
-    # Fetching trending videos specifically for the 'Comedy' category (ID 23)
-    trending_videos = get_trending_videos(api_key, category_id='23')
+    trending_videos = get_trending_videos(api_key, category_id=category_id)
     
     if trending_videos:
         # Select a random title from the list of trending videos
@@ -52,7 +55,8 @@ def get_trending_topic():
         return None
 
 if __name__ == '__main__':
-    trending_topic = get_trending_topic()
+    # You can now test the function with a specific category ID, e.g., '20' for Gaming
+    trending_topic = get_trending_topic(category_id='20')
     if trending_topic:
         print(f"Successfully fetched a trending topic: {trending_topic}")
     else:
