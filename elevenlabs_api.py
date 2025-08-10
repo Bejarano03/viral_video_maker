@@ -1,14 +1,14 @@
 import os
-from elevenlabs import generate, save
+from elevenlabs.client import ElevenLabs
 from dotenv import load_dotenv
 
-def generate_voiceover(script_text, voice_name="Bella"):
+def generate_voiceover(script_text, voice_id="ZT9u07TYPVl83ejeLakq"):
     """
     Generates a high-quality voiceover from script text and saves it as an MP3.
 
     Args:
         script_text (str): The full text of the video script.
-        voice_name (str): The name of the ElevenLabs voice to use.
+        voice_id (str): The ID of the ElevenLabs voice to use. Default is "Bella".
 
     Returns:
         str: The local file path to the saved voiceover MP3 file, or None if it fails.
@@ -19,19 +19,26 @@ def generate_voiceover(script_text, voice_name="Bella"):
         print("Error: ELEVENLABS_API_KEY not found.")
         return None
 
-    os.environ['ELEVENLABS_API_KEY'] = elevenlabs_api_key
+    # Initialize the ElevenLabs client with your API key
+    client = ElevenLabs(api_key=elevenlabs_api_key)
 
     print("Generating voiceover with ElevenLabs...")
 
     try:
-        audio = generate(
+        # CORRECTED: The parameter name is 'voice_id' instead of 'voice'
+        audio_stream = client.text_to_speech.convert(
             text=script_text,
-            voice=voice_name,
-            model="eleven_multilingual_v2" # A versatile model
+            voice_id=voice_id,
+            model_id="eleven_multilingual_v2"
         )
         
         audio_file_path = "voiceover.mp3"
-        save(audio, audio_file_path)
+        
+        # Stream the audio to a file
+        with open(audio_file_path, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
+                
         print(f"Voiceover saved to {audio_file_path}")
         
         # We also save the script to a text file for the FFmpeg captions step
@@ -47,9 +54,7 @@ def generate_voiceover(script_text, voice_name="Bella"):
         return None
 
 if __name__ == '__main__':
-    # This block shows how to test the function independently
     test_script = "Hey there, space enthusiasts! Your brain has more neurons than there are stars in the Milky Way. Keep exploring and never stop learning!"
-    
     generated_audio_path = generate_voiceover(test_script)
     if generated_audio_path:
         print("\nTest voiceover is ready!")
