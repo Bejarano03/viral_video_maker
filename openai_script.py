@@ -31,6 +31,25 @@ def generate_video_script(topic):
     except Exception as e:
         print(f"An error occurred with the OpenAI API: {e}")
         return None
+    
+    try:
+        script_json = response.choices[0].message.content
+        script_data = json.loads(script_json)
+        
+        # Extract the script and keywords
+        script_text = script_data.get("script", "")
+        keywords = script_data.get("keywords", [])
+
+        # Save the script to a file
+        script_file_path = "script.txt"
+        with open(script_file_path, 'w') as f:
+            f.write(script_text)
+        print(f"Script saved to {script_file_path}")
+
+        return script_text, keywords
+    except Exception as e:
+        print(f"Error parsing or saving script: {e}")
+        return None, None
 
 if __name__ == '__main__':
     # We will get a topic from our youtube_scraper.py script
